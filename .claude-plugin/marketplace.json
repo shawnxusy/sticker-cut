@@ -1,0 +1,11 @@
+{
+  "name": "mcut",
+  "owner": { "name": "Shawn Xu" },
+  "plugins": [
+    {
+      "name": "mcut",
+      "source": "./",
+      "description": "Auto-cut voice-over videos (Mandarin/English) with a review step."
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{"tokens": "eval/IMG_2524.tokens.json", "lines": [0, 65], "note": "hand-labelled reference (Claude), first 3 min",
+ "edits": [
+  {"id": 7, "keep": "那么微恐片的部分呢会有一部分血腥恐怖的元素", "reason": "filler"},
+  {"id": 9, "keep": "视频下方的这个分章节", "reason": "stutter"},
+  {"id": 15, "keep": "", "reason": "retake"}, {"id": 16, "keep": "", "reason": "retake"},
+  {"id": 17, "keep": "", "reason": "retake"}, {"id": 18, "keep": "", "reason": "retake"},
+  {"id": 19, "keep": "", "reason": "retake"}, {"id": 20, "keep": "", "reason": "retake"},
+  {"id": 21, "keep": "", "reason": "retake"}, {"id": 22, "keep": "", "reason": "false_start"},
+  {"id": 23, "keep": "", "reason": "retake"}, {"id": 24, "keep": "", "reason": "false_start"},
+  {"id": 25, "keep": "", "reason": "false_start"}, {"id": 26, "keep": "", "reason": "filler"},
+  {"id": 27, "keep": "", "reason": "retake"}, {"id": 31, "keep": "", "reason": "filler"},
+  {"id": 39, "keep": "这里的话你看到它像是一个备餐区或者是一个甜品区", "reason": "filler"},
+  {"id": 46, "keep": "街上呢还会有一些小猫咪他们乔装打扮", "reason": "filler"},
+  {"id": 48, "keep": "还有一些小猫咪坐着车在街上呼啸而过", "reason": "filler"},
+  {"id": 49, "keep": "总体来说是一个非常可爱的小猫咪", "reason": "filler"},
+  {"id": 54, "keep": "", "reason": "filler"},
+  {"id": 55, "keep": "搭配橘色与红色", "reason": "false_start"},
+  {"id": 57, "keep": "", "reason": "filler"},
+  {"id": 62, "keep": "", "reason": "filler"}, {"id": 64, "keep": "", "reason": "filler"}
+ ]}

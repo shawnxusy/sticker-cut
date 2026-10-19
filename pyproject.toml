@@ -1,0 +1,38 @@
+[project]
+name = "mcut"
+version = "0.1.0"
+description = "Auto-cut voice-over videos (Mandarin/English): fillers, stutters, retakes, pauses, subtitles, with a review step"
+readme = "README.md"
+authors = [{ name = "Shawn Xu" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.143.3",
+    "fonttools>=4.67.0",
+    "funasr>=1.4.16",
+    "imageio-ffmpeg>=0.6.0",
+    "jieba>=0.42.1",
+    "mlx-audio>=0.5.9 ; platform_machine == 'arm64' and sys_platform == 'darwin'",
+    "modelscope>=1.40.2",
+    "numpy>=2.5.4",
+    "openai>=3.35.1",
+    "pillow>=13.0.0",
+    "torch>=2.14.1",
+    "torchaudio>=2.11.0",
+    "uvicorn>=0.54.0",
+]
+
+[project.scripts]
+mcut = "mcut.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.21,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+# Resolve from public PyPI regardless of any machine-wide mirror, so uv.lock works anywhere.
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true

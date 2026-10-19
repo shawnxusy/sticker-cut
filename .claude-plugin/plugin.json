@@ -1,0 +1,5 @@
+{
+  "name": "mcut",
+  "description": "Auto-cut voice-over videos (Mandarin/English): fillers, stutters, retakes, long pauses, burned-in subtitles, with a browser review step before export.",
+  "author": { "name": "Shawn Xu" }
+}

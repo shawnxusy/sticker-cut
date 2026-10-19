@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.mcut/
+work/
+out/
+*.MOV
+*.mov
+*.mp4
+*.m4v
+.DS_Store
+fonts/

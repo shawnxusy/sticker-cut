@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mcut review</title>
+<style>
+  :root {
+    --bg: #f6f6f4; --panel: #ffffff; --ink: #1d1d1f; --muted: #6e6e73; --line: #e3e3e0;
+    --accent: #2f6fde; --now: #fff1b8;
+    --retake: #e5484d; --false_start: #8e4ec6; --filler: #8b8d98; --stutter: #f76b15;
+    --correction: #d6a100; --repeat: #e5484d; --user: #2f6fde;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161618; --panel: #1f1f22; --ink: #ececee; --muted: #9b9ba1; --line: #2e2e33; --now: #4a3f12; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.6 -apple-system, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+           padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  .stats { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .stats b { color: var(--ink); }
+  .spacer { flex: 1; }
+  button, select { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+                   border-radius: 8px; padding: 5px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  label { color: var(--muted); user-select: none; }
+  main { display: grid; grid-template-columns: minmax(280px, 34%) 1fr; gap: 20px; padding: 16px 20px; }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } .left { position: static !important; } }
+  .left { position: sticky; top: 70px; align-self: start; }
+  .player { position: relative; background: #000; border-radius: 10px; overflow: hidden; }
+  video { display: block; width: 100%; max-height: calc(100vh - 190px); object-fit: contain; }
+  video { cursor: pointer; }
+  #subimg { position: absolute; pointer-events: none; display: none; }
+  #subband { position: absolute; display: none; cursor: text; border-radius: 8px; }
+  #subband:hover { outline: 1px dashed rgba(255,255,255,.85); background: rgba(255,255,255,.06); }
+  #subband input { width: 100%; height: 100%; text-align: center; font: 600 clamp(14px, 2vw, 20px) -apple-system, "PingFang SC", sans-serif;
+                   color: #fff; background: rgba(0,0,0,.72); border: 1px solid #fff; border-radius: 8px; padding: 0 8px; }
+  .subhint { position: absolute; left: 0; right: 0; text-align: center; font-size: 12px; color: rgba(255,255,255,.85);
+             text-shadow: 0 1px 2px #000; pointer-events: none; }
+  .style-panel { padding: 14px 18px; display: grid; gap: 14px; }
+  .style-panel h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+  .fontbtn { display: flex; align-items: center; justify-content: center; height: 46px; padding: 2px 6px; background: #fff; }
+  .fontbtn img { max-width: 100%; max-height: 40px; }
+  .fontbtn.on { outline: 2px solid var(--accent); border-color: var(--accent); }
+  .row2 { display: grid; grid-template-columns: 130px 1fr 52px; gap: 10px; align-items: center; }
+  .row2 input[type=range] { width: 100%; }
+  .row2 output { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+  .row2 input[type=color] { width: 52px; height: 28px; border: 1px solid var(--line); border-radius: 6px; padding: 0; background: none; }
+  .style-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .help { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .help kbd { border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font: 12px ui-monospace, monospace; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+  .tabs button.on { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-left: 8px; }
+  .chip { font-size: 13px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; }
+  .chip i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .chip.off { opacity: .45; text-decoration: line-through; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 4px; }
+  .line { display: flex; gap: 10px; padding: 3px 12px; border-radius: 6px; }
+  .line:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .lid { flex: none; width: 76px; color: var(--muted); font: 12px/2.1 ui-monospace, monospace; cursor: pointer; user-select: none; }
+  .lid:hover { color: var(--accent); }
+  .txt { flex: 1; }
+  .tok { cursor: pointer; border-radius: 3px; }
+  .tok.now { background: var(--now); }
+  .tok.cut { text-decoration: line-through; text-decoration-thickness: 2px; opacity: .55;
+             background: color-mix(in srgb, var(--c) 16%, transparent); text-decoration-color: var(--c); }
+  .tok.restored { text-decoration: underline dashed; text-decoration-color: var(--c); text-underline-offset: 4px; }
+  .tok.fixed { text-decoration: underline dotted; text-decoration-color: var(--accent); text-underline-offset: 4px; }
+  .tok.fixed.cut { text-decoration: line-through; }
+  .edit { visibility: hidden; flex: none; border: none; background: none; color: var(--muted); padding: 0 4px; cursor: pointer; }
+  .line:hover .edit { visibility: visible; }
+  .edit:hover { color: var(--accent); }
+  .lineinput { width: 100%; font: inherit; padding: 2px 8px; border: 1px solid var(--accent); border-radius: 6px;
+               background: var(--bg); color: var(--ink); }
+  .replace { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: wrap; }
+  .replace input[type=text] { width: 110px; font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px;
+                              background: var(--panel); color: var(--ink); }
+  #replaceMsg { color: var(--muted); font-size: 13px; }
+  .cues .row { display: flex; gap: 10px; align-items: center; padding: 3px 12px; }
+  .cues input { flex: 1; font: inherit; border: 1px solid transparent; background: transparent; color: var(--ink);
+                border-radius: 6px; padding: 3px 8px; }
+  .cues input:hover, .cues input:focus { border-color: var(--line); outline: none; background: var(--bg); }
+  .cues .row.edited input { border-color: var(--correction); }
+  .cues .row.now { background: var(--now); border-radius: 6px; }
+  #toolbar { position: absolute; display: none; z-index: 10; gap: 6px; padding: 6px; background: var(--panel);
+             border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 6px 20px rgba(0,0,0,.15); }
+  .progress { width: 140px; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; display: none; }
+  .progress div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  #exportMsg { color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="name">mcut</h1>
+  <span class="stats" id="stats"></span>
+  <span class="spacer"></span>
+  <label><input type="checkbox" id="burn" checked> Burn in subtitles</label>
+  <select id="quality"><option value="full">Full quality</option><option value="preview">Quick preview (960p)</option></select>
+  <button class="primary" id="exportBtn">Export</button>
+  <div class="progress" id="progress"><div></div></div>
+  <span id="exportMsg"></span>
+  <button id="revealBtn" style="display:none">Show in Finder</button>
+</header>
+<main>
+  <section class="left">
+    <div class="player">
+      <video id="video" src="/media" preload="auto" playsinline></video>
+      <img id="subimg" alt="">
+      <div id="subband" title="Click to edit this subtitle"></div>
+      <div class="subhint" id="subhint"></div>
+    </div>
+    <div class="controls">
+      <button id="playBtn">▶︎ Play</button>
+      <label><input type="checkbox" id="preview" checked> Skip cuts (preview edit)</label>
+      <label><input type="checkbox" id="follow" checked> Follow</label>
+      <span class="stats" id="clock"></span>
+    </div>
+    <div class="help">
+      Struck-through text is cut. <b>Click</b> a cut to restore the whole cut (click again to re-cut).
+      <b>Select</b> text, then <kbd>X</kbd> to cut or <kbd>R</kbd> to restore.
+      <b>Alt-click</b> one character to toggle it. Click a time to jump there.
+      Click the video to play/pause. <b>Click the subtitle on the video</b> to pause and edit it in place (Enter saves, Esc cancels).
+      The <b>Style</b> tab sets the subtitle font and look; the preview shows exactly what Export burns in.
+      Dotted underline = text corrected (hover to see what was heard). <b>✎</b> edits a line's text;
+      <b>Replace all</b> fixes a misheard name everywhere.
+      <kbd>Space</kbd> play/pause · <kbd>⌘Z</kbd> undo · <kbd>←</kbd><kbd>→</kbd> 3 s.
+    </div>
+  </section>
+  <section>
+    <div class="tabs">
+      <button id="tabT" class="on">Transcript</button>
+      <button id="tabS">Subtitles</button>
+      <button id="tabY">Style</button>
+      <div class="chips" id="chips"></div>
+      <div class="replace">
+        <input type="text" id="findTxt" placeholder="Find (e.g. 租金老师)">
+        <input type="text" id="replTxt" placeholder="Replace with">
+        <label title="Also add the new spelling to your glossary (~/.config/mcut/glossary.txt). The speech model gets it as a hint when transcribing future videos, and Claude prefers it when proofreading."><input type="checkbox" id="toGlossary"> remember for future videos</label>
+        <button id="replBtn">Replace all</button>
+        <span id="replaceMsg"></span>
+      </div>
+    </div>
+    <div class="panel" id="transcript"></div>
+    <div class="panel cues" id="cues" style="display:none"></div>
+    <div class="panel style-panel" id="stylePanel" style="display:none">
+      <h3>Font</h3>
+      <div class="fonts" id="fonts"></div>
+      <h3>Look</h3>
+      <div class="row2"><span>Size</span><input type="range" data-k="size" min="3" max="10" step="0.1"><output></output></div>
+      <div class="row2"><span>Text colour</span><input type="color" data-k="color"><span></span></div>
+      <div class="row2"><span>Outline colour</span><input type="color" data-k="outline_color"><span></span></div>
+      <div class="row2"><span>Outline width</span><input type="range" data-k="outline" min="0" max="25" step="1"><output></output></div>
+      <div class="row2"><span>Shadow strength</span><input type="range" data-k="shadow" min="0" max="100" step="1"><output></output></div>
+      <div class="row2"><span>Shadow softness</span><input type="range" data-k="shadow_blur" min="0" max="30" step="1"><output></output></div>
+      <div class="row2"><span>Shadow distance</span><input type="range" data-k="shadow_offset" min="0" max="20" step="1"><output></output></div>
+      <div class="row2"><span>Background box</span><input type="range" data-k="box" min="0" max="100" step="1"><output></output></div>
+      <div class="row2"><span>Box colour</span><input type="color" data-k="box_color"><span></span></div>
+      <div class="row2"><span>Position</span><input type="range" data-k="position" min="50" max="95" step="0.5"><output></output></div>
+      <label><input type="checkbox" id="hideA"> Hide sentence-final 啊 in subtitles (the audio keeps it)</label>
+      <div class="style-actions">
+        <button id="styleDefault">Save as default for new videos</button>
+        <button id="styleReset">Reset</button>
+        <span id="styleMsg" class="stats"></span>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="toolbar"><button id="cutSel">Cut (X)</button><button id="restoreSel">Restore (R)</button></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const video = $("video");
+let T = [], LINES = [], cuts = [], subs = {}, plan = { ranges: [], cues: [], duration: 0 };
+let srcDuration = 0, onCut = [], offCut = [], history = [], tokEls = [], lineOf = [];
+
+const fmt = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
+const REASON_LABEL = { retake: "retake", false_start: "false start", filler: "filler", stutter: "stutter",
+                       correction: "correction", repeat: "repeat", user: "my cuts" };
+
+async function load() {
+  const st = await (await fetch("/api/state")).json();
+  T = st.tokens; LINES = st.lines; cuts = st.cuts; subs = st.subs; plan = st.plan;
+  style = st.style; styleBuiltin = st.style_builtin; hideA = st.hide_endings; FONTS = st.fonts;
+  buildStylePanel();
+  $("name").textContent = st.name;
+  document.title = `${st.name} · mcut`;
+  buildTranscript();
+  refresh();
+  if (st.export.state === "running") pollExport();
+}
+
+function buildTranscript() {
+  const root = $("transcript");
+  root.innerHTML = "";
+  tokEls = new Array(T.length);
+  lineOf = new Array(T.length);
+  LINES.forEach(([a, b], li) => {
+    const row = document.createElement("div");
+    row.className = "line";
+    const lid = document.createElement("span");
+    lid.className = "lid";
+    lid.textContent = `${li} ${fmt(T[a][1])}`;
+    lid.onclick = () => seek(T[a][1], true);
+    const txt = document.createElement("span");
+    txt.className = "txt";
+    for (let i = a; i <= b; i++) {
+      const s = document.createElement("span");
+      s.className = "tok";
+      s.dataset.i = i;
+      const prev = i > a ? T[i - 1][0] : "";
+      const space = /[A-Za-z0-9]$/.test(prev) && /^[A-Za-z0-9]/.test(T[i][0]) ? " " : "";
+      s.textContent = space + T[i][0] + T[i][3];
+      tokEls[i] = s;
+      lineOf[i] = row;
+      txt.appendChild(s);
+    }
+    const edit = document.createElement("button");
+    edit.className = "edit";
+    edit.textContent = "✎";
+    edit.title = "Edit this line's text (fix recognition errors)";
+    edit.onclick = () => editLine(li, row, txt);
+    row.append(lid, txt, edit);
+    root.appendChild(row);
+  });
+}
+
+function editLine(li, row, txt) {
+  const [a, b] = LINES[li];
+  let text = "";
+  for (let i = a; i <= b; i++) text += T[i][0] + T[i][3];
+  const inp = document.createElement("input");
+  inp.className = "lineinput";
+  inp.value = text;
+  txt.replaceWith(inp);
+  inp.focus();
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    if (save && inp.value !== text) {
+      const r = await post("/api/fix_line", { line: li, text: inp.value });
+      textChanged(r);
+    } else {
+      inp.replaceWith(txt);
+    }
+  };
+  inp.onkeydown = (e) => { if (e.key === "Enter") finish(true); if (e.key === "Escape") finish(false); };
+  inp.onblur = () => finish(true);
+}
+
+async function post(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  return r.json();
+}
+
+function textChanged(r) {
+  T = r.tokens;
+  plan = r.plan;
+  if (r.subs) subs = r.subs;
+  const y = window.scrollY;
+  buildTranscript();
+  refresh();
+  window.scrollTo(0, y);
+}
+
+$("replBtn").onclick = async () => {
+  const old = $("findTxt").value.trim(), neu = $("replTxt").value.trim();
+  if (!old) return;
+  const r = await post("/api/replace", { old, new: neu, glossary: $("toGlossary").checked });
+  textChanged(r);
+  $("replaceMsg").textContent = `${r.count} replaced`;
+};
+
+function computeCover() {
+  onCut = new Int32Array(T.length).fill(-1);
+  offCut = new Int32Array(T.length).fill(-1);
+  const order = cuts.map((c, k) => k).sort((x, y) => (cuts[x].end - cuts[x].start) - (cuts[y].end - cuts[y].start));
+  for (const k of order) {  // longer cuts win, so a click restores the whole retake
+    const c = cuts[k], target = c.on ? onCut : offCut;
+    for (let i = c.start; i <= c.end; i++) target[i] = k;
+  }
+}
+
+function refresh() {
+  computeCover();
+  for (let i = 0; i < T.length; i++) {
+    const k = onCut[i] >= 0 ? onCut[i] : offCut[i];
+    let cls = "tok", title = "";
+    if (T[i].length > 4) {
+      cls += " fixed";
+      const by = { qwen: "second recogniser", claude: "Claude", user: "you" }[T[i][5]] || T[i][5];
+      title = `heard as "${T[i][4] || "—"}", corrected by ${by}`;
+    }
+    if (k >= 0) {
+      const c = cuts[k];
+      cls += onCut[i] >= 0 ? " cut" : " restored";
+      tokEls[i].style.setProperty("--c", `var(--${c.reason}, var(--retake))`);
+      title = `${REASON_LABEL[c.reason] || c.reason} · ${c.source}${c.on ? " — click to restore" : " (restored) — click to cut again"}` + (title ? `\n${title}` : "");
+    }
+    tokEls[i].title = title;
+    if (tokEls[i].classList.contains("now")) cls += " now";
+    tokEls[i].className = cls;
+  }
+  renderChips();
+  renderStats();
+  if ($("cues").style.display !== "none") renderCues();
+}
+
+function renderStats() {
+  const n = cuts.filter((c) => c.on).length;
+  const pct = srcDuration ? ` (${Math.round(100 * plan.duration / srcDuration)}%)` : "";
+  $("stats").innerHTML = `${srcDuration ? fmt(srcDuration) : ""} → <b>${fmt(plan.duration)}</b>${pct} · ${n} cuts · ${plan.cues.length} subtitles`;
+}
+
+function renderChips() {
+  const by = {};
+  for (const c of cuts) {
+    by[c.reason] ??= { on: 0, all: 0 };
+    by[c.reason].all++;
+    if (c.on) by[c.reason].on++;
+  }
+  const el = $("chips");
+  el.innerHTML = "";
+  for (const [r, v] of Object.entries(by)) {
+    const chip = document.createElement("span");
+    chip.className = "chip" + (v.on ? "" : " off");
+    chip.innerHTML = `<i style="background:var(--${r}, var(--retake))"></i>${REASON_LABEL[r] || r} ${v.on}/${v.all}`;
+    chip.title = v.on ? `Restore all ${r} cuts` : `Re-apply all ${r} cuts`;
+    chip.onclick = () => change(() => { const on = !v.on; cuts.forEach((c) => { if (c.reason === r) c.on = on; }); });
+    el.appendChild(chip);
+  }
+}
+
+function renderCues() {
+  const el = $("cues");
+  el.innerHTML = "";
+  plan.cues.forEach((c) => {
+    const row = document.createElement("div");
+    row.className = "row" + (c.edited ? " edited" : "");
+    row.dataset.key = c.key;
+    const lid = document.createElement("span");
+    lid.className = "lid";
+    lid.textContent = fmt(c.s);
+    lid.onclick = () => seek(c.src_s, true);
+    const inp = document.createElement("input");
+    inp.value = c.text;
+    inp.title = c.edited ? `heard as: ${c.heard}` : "edit, then Enter to save";
+    inp.onkeydown = (e) => { if (e.key === "Enter") inp.blur(); if (e.key === "Escape") { inp.value = c.text; inp.blur(); } };
+    inp.onchange = () => saveCue(c, inp.value);
+    row.append(lid, inp);
+    el.appendChild(row);
+  });
+}
+
+// ------------------------------------------------------------ editing
+function change(fn) {
+  history.push(JSON.stringify(cuts));
+  if (history.length > 200) history.shift();
+  fn();
+  cuts.sort((a, b) => a.start - b.start);
+  refresh();
+  save();
+}
+
+function undo() {
+  if (!history.length) return;
+  cuts = JSON.parse(history.pop());
+  refresh();
+  save();
+}
+
+let saveTimer = null;
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    const r = await fetch("/api/state", { method: "POST", headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ cuts, subs }) });
+    plan = await r.json();
+    renderStats();
+    if ($("cues").style.display !== "none" && document.activeElement?.tagName !== "INPUT") renderCues();
+  }, 350);
+}
+
+function selectedRange() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return null;
+  const tokOf = (node) => (node?.nodeType === 3 ? node.parentElement : node)?.closest?.(".tok");
+  const a = tokOf(sel.anchorNode), b = tokOf(sel.focusNode);
+  if (!a || !b) return null;
+  const i = +a.dataset.i, j = +b.dataset.i;
+  return [Math.min(i, j), Math.max(i, j)];
+}
+
+function cutRange([a, b]) {
+  change(() => cuts.push({ start: a, end: b, reason: "user", source: "user", on: true }));
+}
+
+function restoreRange([a, b]) {
+  change(() => {
+    const out = [];
+    for (const c of cuts) {
+      if (!c.on || c.end < a || c.start > b) { out.push(c); continue; }
+      if (c.start < a) out.push({ ...c, end: a - 1 });
+      out.push({ ...c, start: Math.max(c.start, a), end: Math.min(c.end, b), on: false });
+      if (c.end > b) out.push({ ...c, start: b + 1 });
+    }
+    cuts = out;
+  });
+}
+
+$("transcript").addEventListener("click", (e) => {
+  const el = e.target.closest(".tok");
+  if (!el || !window.getSelection().isCollapsed) return;
+  const i = +el.dataset.i;
+  if (e.altKey) {
+    const k = cuts.findIndex((c) => c.start === i && c.end === i);
+    change(() => { if (k >= 0) cuts[k].on = !cuts[k].on; else cuts.push({ start: i, end: i, reason: "user", source: "user", on: true }); });
+  } else if (onCut[i] >= 0) {
+    change(() => { cuts[onCut[i]].on = false; });
+  } else if (offCut[i] >= 0) {
+    change(() => { cuts[offCut[i]].on = true; });
+  } else {
+    seek(T[i][1], false);
+  }
+});
+
+document.addEventListener("selectionchange", () => {
+  const r = selectedRange(), tb = $("toolbar");
+  if (!r) { tb.style.display = "none"; return; }
+  const rect = window.getSelection().getRangeAt(0).getBoundingClientRect();
+  tb.style.display = "flex";
+  tb.style.left = `${rect.left + window.scrollX}px`;
+  tb.style.top = `${rect.bottom + window.scrollY + 6}px`;
+});
+$("cutSel").onmousedown = (e) => { e.preventDefault(); const r = selectedRange(); if (r) cutRange(r); window.getSelection().removeAllRanges(); };
+$("restoreSel").onmousedown = (e) => { e.preventDefault(); const r = selectedRange(); if (r) restoreRange(r); window.getSelection().removeAllRanges(); };
+
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
+  if ((e.metaKey || e.ctrlKey) && e.key === "z") { e.preventDefault(); undo(); return; }
+  if (e.metaKey || e.ctrlKey) return;
+  const r = selectedRange();
+  if (e.key === "x" && r) { cutRange(r); window.getSelection().removeAllRanges(); }
+  else if (e.key === "r" && r) { restoreRange(r); window.getSelection().removeAllRanges(); }
+  else if (e.key === " ") { e.preventDefault(); togglePlay(); }
+  else if (e.key === "ArrowLeft") video.currentTime = Math.max(0, video.currentTime - 3);
+  else if (e.key === "ArrowRight") video.currentTime += 3;
+});
+
+// ------------------------------------------------------------ playback
+function seek(t, play) {
+  video.currentTime = Math.max(0, t - 0.05);
+  if (play) video.play();
+}
+function togglePlay() { video.paused ? video.play() : video.pause(); }
+$("playBtn").onclick = togglePlay;
+video.addEventListener("play", () => ($("playBtn").textContent = "❚❚ Pause"));
+video.addEventListener("pause", () => ($("playBtn").textContent = "▶︎ Play"));
+video.addEventListener("loadedmetadata", () => { srcDuration = video.duration; renderStats(); });
+
+function bsearch(arr, t, key) {  // last index with key(arr[i]) <= t
+  let lo = 0, hi = arr.length - 1, ans = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (key(arr[m]) <= t) { ans = m; lo = m + 1; } else hi = m - 1; }
+  return ans;
+}
+
+let nowTok = -1, nowCue = null;
+function tick() {
+  const t = video.currentTime, preview = $("preview").checked;
+  if (preview && !video.paused && plan.ranges.length) {
+    const k = bsearch(plan.ranges, t, (r) => r[0]);
+    if (k < 0 || t >= plan.ranges[k][1]) {
+      const next = plan.ranges[k + 1];
+      if (next) video.currentTime = next[0]; else video.pause();
+    }
+  }
+  const c = plan.cues[bsearch(plan.cues, t, (c) => c.src_s)];
+  if (editingCue === null) {
+    let cue = c && t < c.src_e ? c : null;
+    if (!cue && styleTabOpen()) cue = plan.cues[Math.max(0, bsearch(plan.cues, t, (c) => c.src_s))] || null;  // sample while styling
+    showSubtitle(cue, c && t < c.src_e);
+    const next = plan.cues[bsearch(plan.cues, t, (c) => c.src_s) + 1];
+    if (next) prefetch(next.text);
+  }
+  if (c?.key !== nowCue) {
+    nowCue = c?.key;
+    document.querySelectorAll(".cues .row.now").forEach((r) => r.classList.remove("now"));
+    const row = c && document.querySelector(`.cues .row[data-key="${c.key}"]`);
+    if (row) { row.classList.add("now"); if ($("follow").checked && !video.paused) row.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  }
+  const i = bsearch(T, t, (x) => x[1]);
+  if (i !== nowTok) {
+    tokEls[nowTok]?.classList.remove("now");
+    if (i >= 0 && t < T[i][2] + 0.3) {
+      tokEls[i].classList.add("now");
+      if ($("follow").checked && !video.paused && lineOf[i] !== lineOf[nowTok] && $("transcript").style.display !== "none")
+        lineOf[i].scrollIntoView({ block: "center", behavior: "smooth" });
+    }
+    nowTok = i;
+  }
+  $("clock").textContent = fmt(t);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ------------------------------------------------------------ editing subtitles
+let editingCue = null;
+
+async function saveCue(c, text) {
+  if (!text.trim() || text === c.text) return;
+  const r = await post("/api/fix_cue", { key: c.key, text });
+  textChanged(r);
+}
+
+function editCueInPlace(c) {
+  video.pause();
+  editingCue = c.key;
+  $("subhint").textContent = "Enter to save · Esc to cancel";
+  $("subimg").style.display = "none";
+  const box = $("subband");
+  box.innerHTML = "";
+  const inp = document.createElement("input");
+  inp.value = c.text;
+  box.appendChild(inp);
+  inp.focus();
+  let done = false;
+  const finish = async (save) => {
+    if (done) return;
+    done = true;
+    if (save) await saveCue(c, inp.value);
+    editingCue = null;
+    box.innerHTML = "";
+    shownKey = null;  // repaint on the next frame
+  };
+  inp.onkeydown = (e) => { e.stopPropagation(); if (e.key === "Enter") finish(true); if (e.key === "Escape") finish(false); };
+  inp.onblur = () => finish(true);
+}
+
+// ------------------------------------------------------------ subtitle overlay (server-rendered = what gets burned in)
+let style = {}, styleBuiltin = {}, hideA = true, FONTS = [], shownKey = null, overlayCue = null;
+
+function videoRect() {  // where the picture actually sits inside the <video> box (object-fit: contain)
+  const cw = video.clientWidth, ch = video.clientHeight, vw = video.videoWidth || 9, vh = video.videoHeight || 16;
+  const k = Math.min(cw / vw, ch / vh), w = vw * k, h = vh * k;
+  return { left: (cw - w) / 2, top: (ch - h) / 2, w, h };
+}
+
+function subUrl(text) {
+  const r = videoRect();
+  const w = Math.round(r.w * Math.min(window.devicePixelRatio || 1, 2));
+  return `/api/subtitle.png?w=${w}&text=${encodeURIComponent(text)}&style=${encodeURIComponent(JSON.stringify(style))}`;
+}
+
+const prefetched = new Set();
+function prefetch(text) {
+  const u = subUrl(text);
+  if (prefetched.has(u)) return;
+  prefetched.add(u);
+  new Image().src = u;
+}
+
+function showSubtitle(cue, live) {
+  const img = $("subimg"), band = $("subband"), hint = $("subhint"), r = videoRect();
+  const key = cue ? `${cue.key}|${cue.text}|${JSON.stringify(style)}|${Math.round(r.w)}` : null;
+  if (key !== shownKey) {
+    shownKey = key;
+    overlayCue = cue;
+    if (cue) { img.src = subUrl(cue.text); img.style.display = "block"; } else img.style.display = "none";
+  }
+  Object.assign(img.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.w}px`, height: `${r.h}px` });
+  const fs = Math.min(r.w, r.h) * style.size / 100;
+  const cy = r.top + r.h * style.position / 100;
+  Object.assign(band.style, { display: cue ? "block" : "none", left: `${r.left + r.w * 0.04}px`, width: `${r.w * 0.92}px`,
+                              top: `${cy - fs}px`, height: `${fs * 2}px` });
+  hint.style.top = `${cy + fs + 2}px`;
+  hint.textContent = cue && video.paused ? (live ? "click the subtitle to edit" : "style preview") : "";
+}
+
+$("subband").addEventListener("click", (e) => { if (overlayCue && e.target === $("subband")) editCueInPlace(overlayCue); });
+video.addEventListener("click", togglePlay);
+
+function styleTabOpen() { return $("stylePanel").style.display !== "none"; }
+
+function buildStylePanel() {
+  const fonts = $("fonts");
+  fonts.innerHTML = "";
+  for (const f of [{ id: "", name: "Default (system)" }, ...FONTS]) {
+    const b = document.createElement("button");
+    b.className = "fontbtn" + (style.font === f.id ? " on" : "");
+    b.title = f.name;
+    b.innerHTML = `<img alt="${f.name}" src="/api/font_sample.png?font=${encodeURIComponent(f.id)}&label=${encodeURIComponent(f.name)}">`;
+    b.onclick = () => { style.font = f.id; buildStylePanel(); styleChanged(); };
+    fonts.appendChild(b);
+  }
+  document.querySelectorAll("#stylePanel [data-k]").forEach((el) => {
+    el.value = style[el.dataset.k];
+    const out = el.nextElementSibling;
+    if (out?.tagName === "OUTPUT") out.textContent = el.value;
+    el.oninput = () => {
+      style[el.dataset.k] = el.type === "range" ? +el.value : el.value;
+      if (out?.tagName === "OUTPUT") out.textContent = el.value;
+      styleChanged();
+    };
+  });
+  $("hideA").checked = hideA;
+}
+
+let styleTimer = null;
+function styleChanged(saveDefault = false) {
+  shownKey = null;  // re-render the preview now
+  clearTimeout(styleTimer);
+  styleTimer = setTimeout(async () => {
+    const r = await post("/api/style", { style, hide_endings: hideA, save_default: saveDefault });
+    plan = r.plan;
+    $("styleMsg").textContent = saveDefault ? "Saved as default for new videos" : "Saved";
+    if ($("cues").style.display !== "none") renderCues();
+  }, saveDefault ? 0 : 250);
+}
+$("hideA").onchange = () => { hideA = $("hideA").checked; styleChanged(); };
+$("styleDefault").onclick = () => styleChanged(true);
+$("styleReset").onclick = () => { style = { ...styleBuiltin }; buildStylePanel(); styleChanged(); };
+
+// ------------------------------------------------------------ tabs & export
+function showTab(name) {
+  const panes = { T: "transcript", S: "cues", Y: "stylePanel" };
+  for (const [k, id] of Object.entries(panes)) {
+    $(id).style.display = k === name ? "" : "none";
+    $("tab" + k).classList.toggle("on", k === name);
+  }
+  if (name === "S") renderCues();
+  shownKey = null;
+}
+$("tabT").onclick = () => showTab("T");
+$("tabS").onclick = () => showTab("S");
+$("tabY").onclick = () => showTab("Y");
+if (location.hash === "#style") showTab("Y");
+
+$("exportBtn").onclick = async () => {
+  clearTimeout(saveTimer);
+  await fetch("/api/state", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cuts, subs }) });
+  await fetch("/api/export", { method: "POST", headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({ burn: $("burn").checked, preview: $("quality").value === "preview" }) });
+  pollExport();
+};
+$("revealBtn").onclick = () => fetch("/api/reveal", { method: "POST" });
+
+async function pollExport() {
+  const ex = await (await fetch("/api/export")).json();
+  const bar = $("progress");
+  $("exportBtn").disabled = ex.state === "running";
+  bar.style.display = ex.state === "running" ? "block" : "none";
+  bar.firstElementChild.style.width = `${Math.round(ex.progress * 100)}%`;
+  $("revealBtn").style.display = ex.state === "done" ? "" : "none";
+  $("exportMsg").textContent = { running: `Exporting… ${Math.round(ex.progress * 100)}%`, done: `Saved ${ex.output.split("/").pop()}`,
+                                 error: `Export failed: ${ex.error}`, idle: "" }[ex.state];
+  if (ex.state === "running") setTimeout(pollExport, 1000);
+}
+
+load();
+</script>
+</body>
+</html>
