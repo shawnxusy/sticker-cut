@@ -88,7 +88,13 @@ def cmd_prep(a) -> None:
     print(f"wording: {n_q} places where Qwen3-ASR's reading replaced Paraformer's (see mcut diffs)" if proj.qwen.exists()
           else "wording: Paraformer only (Qwen3-ASR needs Apple Silicon)")
     print(f"automatic cuts: {sum(c.source == 'rule' for c in st.cuts)} filler sounds; long pauses are shortened at render time")
-    print("next: proofread (mcut diffs / mcut fix), decide retake/stutter cuts (mcut rules, mcut apply), then mcut review")
+    done_claude = sum(c.source == "claude" for c in st.cuts)
+    done_user = sum(c.source == "user" for c in st.cuts) + sum(f.source == "user" for f in st.fixes)
+    if done_claude or done_user:
+        print(f"EXISTING WORK: {done_claude} cuts from Claude and {done_user} edits by the user are already in this project "
+              "(kept). This video was processed before -- skip to the review page unless the user asks to redo the cuts.")
+    else:
+        print("next: proofread (mcut diffs / mcut fix), decide retake/stutter cuts (mcut rules, mcut apply), then mcut review")
 
 
 def write_lines(proj: Project, st) -> None:

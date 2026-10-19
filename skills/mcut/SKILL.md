@@ -25,7 +25,7 @@ Pass the clips in the order the user wants (ask if it isn't clear; file names li
 ${CLAUDE_PLUGIN_ROOT}/bin/mcut prep "<video>"
 ```
 
-Run it with `run_in_background` and wait for it to finish. Two recognisers run: Paraformer (timing, filler sounds) and Qwen3-ASR (an LLM-based recogniser that gets homophones right far more often; its wording is adopted wherever they disagree). On a machine that has never run mcut, the first run builds the Python environment (~1 min) and downloads ~4.5 GB of speech models (~15–20 min); tell the user up front. If they just want to get the machine ready, `mcut setup` does only that. After setup, prep takes ~3–4 minutes per 24 minutes of video on Apple Silicon. Re-running is cheap: finished steps are skipped (`--force` redoes them).
+Run it with `run_in_background` and wait for it to finish. Two recognisers run: Paraformer (timing, filler sounds) and Qwen3-ASR (an LLM-based recogniser that gets homophones right far more often; its wording is adopted wherever they disagree). On a machine that has never run mcut, the first run builds the Python environment (~1 min) and downloads ~4.5 GB of speech models (~15–20 min); tell the user up front. If they just want to get the machine ready, `mcut setup` does only that. After setup, prep takes ~3–4 minutes per 24 minutes of video on Apple Silicon. Re-running is cheap: finished steps are skipped (`--force` redoes them). If prep prints `EXISTING WORK`, the video was already processed (possibly on another machine): don't proofread or re-apply cuts again — tell the user what's there (`mcut status`) and go straight to step 5, unless they ask to redo it.
 
 ## 2. Proofread (fix recognition errors)
 
