@@ -68,7 +68,7 @@ Start the review page in the background (it keeps running) and give the user the
 ${CLAUDE_PLUGIN_ROOT}/bin/mcut review "<video>"
 ```
 
-Run it with `run_in_background`. It opens the browser automatically. Tell the user:
+Run it with `run_in_background`. It opens the browser automatically; always give the user the exact URL it prints (default http://127.0.0.1:8765, or the next free port). If the page for this video is already running, the command just reopens it and exits. Tell the user:
 - struck-through text is cut, coloured by reason; click a cut to restore it, click again to re-cut;
 - select text and press X to cut it, R to restore; Alt-click toggles a single character; ⌘Z undoes cut changes;
 - clicking the video plays/pauses; clicking the subtitle on the video pauses it and edits that subtitle in place (Enter saves, Esc cancels); the edit is saved as a correction of the words underneath, so it survives later cut changes and is used by Export;

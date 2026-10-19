@@ -29,7 +29,7 @@ To combine several recordings into one video, list them in the order you want:
 
 Claude transcribes the video (about 3–4 minutes per 24 minutes of video), fixes misheard words, and marks the cuts: retakes, false starts, stutters, 呃/嗯 and long pauses. For combined recordings, that includes sections you re-recorded in a later clip. It then tells you what it changed and which names it wasn't sure about, and opens the review page.
 
-**4. Review in the browser.**
+**4. Review in the browser.** The page opens by itself at **http://127.0.0.1:8765** (localhost). If that port is taken, it uses the next free one (8766, …) and Claude gives you the exact link. Running `/mcut` again on the same video reopens the same page.
 
 | To… | Do this |
 |---|---|

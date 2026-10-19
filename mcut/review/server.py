@@ -65,6 +65,10 @@ def build_app(proj: Project) -> FastAPI:
     def index() -> HTMLResponse:
         return HTMLResponse(INDEX.read_text())
 
+    @app.get("/api/whoami")
+    def whoami() -> dict:
+        return {"project": str(proj.dir)}
+
     @app.get("/media")
     def media() -> FileResponse:
         return FileResponse(proj.proxy if proj.proxy.exists() else proj.video)
@@ -180,18 +184,33 @@ def build_app(proj: Project) -> FastAPI:
     return app
 
 
-def _free_port(port: int) -> int:
+def _find_port(proj: Project, port: int) -> tuple[int, bool]:
+    """(port, already_running): the page already serving this project, else the first
+    free port from `port` on."""
+    import urllib.request
+
     for p in range(port, port + 50):
         with socket.socket() as s:
             if s.connect_ex(("127.0.0.1", p)):
-                return p
+                return p, False
+        try:
+            with urllib.request.urlopen(f"http://127.0.0.1:{p}/api/whoami", timeout=0.5) as r:
+                if json.load(r).get("project") == str(proj.dir):
+                    return p, True
+        except (OSError, ValueError):
+            pass  # some other service
     raise RuntimeError("no free port")
 
 
 def serve(proj: Project, port: int = 8765, open_browser: bool = True) -> None:
-    app = build_app(proj)
-    port = _free_port(port)
+    port, running = _find_port(proj, port)
     url = f"http://127.0.0.1:{port}"
+    if running:
+        print(f"review page already running: {url}", flush=True)
+        if open_browser:
+            webbrowser.open(url)
+        return
+    app = build_app(proj)
     print(f"review page: {url}   (Ctrl-C to stop)", flush=True)
     if open_browser:
         threading.Timer(1.0, webbrowser.open, [url]).start()
