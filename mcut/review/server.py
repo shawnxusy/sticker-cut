@@ -85,6 +85,7 @@ def build_app(proj: Project) -> FastAPI:
             "style_builtin": asdict(burn.Style()),
             "hide_endings": bool(st.settings.sub_hide_endings),
             "fonts": burn.list_fonts(),
+            "clips": proj.clips if len(proj.clips) > 1 else [],
         }
 
     @app.get("/api/subtitle.png")

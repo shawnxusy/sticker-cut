@@ -11,6 +11,14 @@ All commands go through the launcher `${CLAUDE_PLUGIN_ROOT}/bin/mcut` (written a
 
 Your job in the loop is the part rules can't do: getting the words right from context (proofreading), and deciding which lines are retakes, false starts and stutters. Filler sounds (呃/嗯) and long pauses are handled automatically.
 
+## 0. Several recordings → one video (only if the user has more than one)
+
+```
+${CLAUDE_PLUGIN_ROOT}/bin/mcut join "<clip1>" "<clip2>" "<clip3>"
+```
+
+Pass the clips in the order the user wants (ask if it isn't clear; file names like IMG_1234 usually sort by recording time). Clips from the same phone/settings are joined without re-encoding in seconds; others are converted. The result `<clip1 stem>_joined.<ext>` sits next to the first clip — use it as `<video>` in every later step. Joins are plain cuts. In lines.txt and on the review page, `--- clip N ---` markers show where each recording starts; look for sections the speaker re-recorded in a later clip (see the rules).
+
 ## 1. Prep (transcribe + automatic cuts)
 
 ```
@@ -25,7 +33,7 @@ Subtitles are made from the transcript, so every misrecognition ends up on scree
 
 1. `mcut glossary` — the user's known names (artists, brands, sticker series). Prefer these spellings.
 2. `mcut diffs "<video>"` — every place the recognisers disagreed: the line as it now reads, with the adopted Qwen3-ASR reading in `[brackets]` and Paraformer's reading in the margin. Qwen3-ASR is usually right on ordinary words; Paraformer is sometimes right on names, or on what was literally said when Qwen3-ASR smoothed over a slip of the tongue. Revert those.
-3. Read `<stem>.mcut/lines.txt` in full with the Read tool (one `id|text` line per phrase; ~550 lines for 24 minutes) and fix any other error the context makes obvious — a homophone that makes no sense in context (e.g. corpses that 面向强而立 → 面向墙而立), a garbled term.
+3. Read `<stem>.mcut/lines.txt` in full with the Read tool (one `id|text` line per phrase; ~550 lines for 24 minutes; always use the `id|` prefix, not the file's line numbers, which `--- clip N ---` markers shift) and fix any other error the context makes obvious — a homophone that makes no sense in context (e.g. corpses that 面向强而立 → 面向墙而立), a garbled term.
 4. Write `{"fix": [{"id": <line id>, "from": "<exact current text>", "to": "<corrected text>"}]}` to `<stem>.mcut/claude_fixes.json` and run `mcut fix "<video>" "<stem>.mcut/claude_fixes.json"`. `from` is any exact substring of the current line — a word or short phrase is best — without punctuation; `to` may add punctuation such as 《》 for titles. Each applied fix is echoed as `before -> after`. Runs accumulate and re-running an already-applied fix is a no-op, so you can fix a `REJECTED` item and re-run the same file. lines.txt is rewritten with the corrected text.
 5. Rules: fix misrecognitions only. Keep the speaker's words and word order, don't polish grammar, don't remove stutters or fillers here (that's the cutting step), don't touch 呃/嗯. Qwen3-ASR writes 它 for almost every "tā"; change it to 他/她 only where the referent is clearly a person. Make a recurring term consistent (e.g. the same brand or 底卡 spelled one way throughout).
 6. Names you can't verify: don't guess silently. List them for the user with your best guess; they can fix them in the review page (Replace all, with "glossary" ticked so future videos get them right). When the user confirms a spelling, `mcut replace "<video>" <wrong> <right>` fixes it everywhere and `mcut glossary add <right>` remembers it.
@@ -47,7 +55,7 @@ Subtitles are made from the transcript, so every misrecognition ends up on scree
 ${CLAUDE_PLUGIN_ROOT}/bin/mcut apply "<video>" "<stem>.mcut/claude_cuts.json" -v
 ```
 
-- `-v` prints every affected line with your cuts in `[brackets]` and automatic cuts in `{braces}`. Read it: everything bracketed must be redundant, and what remains must read fluently. Fix and re-apply if not. Re-applying replaces all your previous cuts, including any the user switched off on the review page; cuts the user added themselves are kept. So after the user has started reviewing, don't re-apply without telling them.
+- `-v` prints every line your cuts touch, with your cuts in `[brackets]` and automatic cuts on those lines in `{braces}` (lines with only automatic cuts aren't shown). Read it: everything bracketed must be redundant, and what remains must read fluently. Fix and re-apply if not. Re-applying replaces all your previous cuts, including any the user switched off on the review page; cuts the user added themselves are kept. So after the user has started reviewing, don't re-apply without telling them.
 - `REJECTED` lines mean a fragment wasn't found verbatim in that line (copy it exactly, without punctuation) or a line id was out of range. Fix and re-apply.
 - To read the edited result as a whole (what will actually be heard and shown), run `mcut cues "<video>"`; check the joins around each retake read naturally.
 - Tell the user briefly: original → edited length, the main retakes you removed (line ids + a few words each), how many text fixes you made, and any names you weren't sure about.

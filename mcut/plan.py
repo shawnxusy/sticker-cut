@@ -122,20 +122,23 @@ def keep_ranges(tokens: list[Token], deleted: set[int], env: Envelope, s: Settin
     return out
 
 
-def video_map(ranges: list[tuple[float, float]], s: Settings = Settings()) -> list[tuple[float, float, float, float]]:
+def video_map(ranges: list[tuple[float, float]], s: Settings = Settings(),
+              joins: list[float] = ()) -> list[tuple[float, float, float, float]]:
     """Piecewise-linear picture timing as (src_start, src_end, out_start, out_end) pieces.
 
     Audio is cut exactly at the ranges. At a short cut the picture instead keeps
     running through the removed moment, played slightly faster over a window on
     both sides, so there is no visible jump; audio and picture realign at the window
-    edges. Cuts that would need more than smooth_max_speed stay hard cuts.
+    edges. Cuts that would need more than smooth_max_speed stay hard cuts, and so do
+    the joins between clips of a joined video (`joins`, source seconds).
     """
     out_starts = np.concatenate([[0], np.cumsum([b - a for a, b in ranges])])
     # (w_left, w_right) of output time borrowed from each side of boundary k|k+1
     ramps: list[tuple[float, float] | None] = []
     for k in range(len(ranges) - 1):
         gap = ranges[k + 1][0] - ranges[k][1]
-        if not s.smooth or gap <= 0:
+        at_join = any(ranges[k][1] - 0.05 <= j <= ranges[k + 1][0] + 0.05 for j in joins)
+        if not s.smooth or gap <= 0 or at_join:
             ramps.append(None)
             continue
         want = gap / (2 * (s.smooth_speed - 1))

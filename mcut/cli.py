@@ -1,5 +1,6 @@
 """mcut command line. Typical flow:
 
+    mcut join A B C              (optional) join several recordings into one video first
     mcut prep VIDEO              transcribe (2 recognisers) + automatic cuts (fillers, pauses)
     mcut diffs / fix VIDEO       proofread: where the recognisers disagreed / apply text fixes
     mcut lines VIDEO             numbered transcript lines (for Claude / a model)
@@ -20,7 +21,7 @@ from pathlib import Path
 warnings.filterwarnings("ignore", category=SyntaxWarning)  # jieba's old regex literals
 
 from mcut import ffmpeg, glossary
-from mcut.edit import RULES, apply_ai, line_text, llm_cuts, numbered_lines, phrases, rule_cuts
+from mcut.edit import RULES, apply_ai, line_text, llm_cuts, phrases, rule_cuts
 from mcut.project import Project
 from mcut.textfix import merge_second_opinion, replace_in_line
 from mcut.transcript import from_funasr, load, save
@@ -56,6 +57,10 @@ def cmd_prep(a) -> None:
               "(first run downloads ~4.5 GB of speech models)...", flush=True)
         transcribe(str(proj.audio), str(proj.asr))
     tokens = from_funasr(str(proj.asr))
+    for j in proj.joins:  # a clip join always ends a sentence (lines and subtitles break there)
+        before = [t for t in tokens if t.e <= j + 0.05]
+        if before and not before[-1].p:
+            before[-1].p = "。"
     save(tokens, str(proj.tokens))
     if qwen:
         _, err = qwen.communicate()
@@ -87,7 +92,35 @@ def cmd_prep(a) -> None:
 
 
 def write_lines(proj: Project, st) -> None:
-    proj.lines.write_text(numbered_lines(proj.display_tokens(st)) + "\n")
+    proj.lines.write_text(lines_with_clips(proj, proj.display_tokens(st)) + "\n")
+
+
+def lines_with_clips(proj: Project, tokens, ids: range | None = None) -> str:
+    """Numbered lines; for a joined video, a `--- clip N: name ---` marker where each clip starts."""
+    lines = phrases(tokens)
+    clips = proj.clips if len(proj.clips) > 1 else []
+    out, k = [], 0
+    for i in ids or range(len(lines)):
+        while k < len(clips) and tokens[lines[i][0]].s >= clips[k]["start"] - 0.05:
+            out.append(f"--- clip {k + 1}: {clips[k]['name']} ---")
+            k += 1
+        out.append(f"{i}|{line_text(tokens, *lines[i])}")
+    return "\n".join(out)
+
+
+def cmd_join(a) -> None:
+    from mcut.join import join
+
+    first = Path(a.videos[0]).expanduser().resolve()
+    out = Path(a.output).expanduser().resolve() if a.output else first.with_name(f"{first.stem}_joined{first.suffix}")
+    if out.exists() and not a.force:
+        sys.exit(f"{out} already exists (use --force to overwrite, or -o for another name)")
+    clips = join([str(Path(v).expanduser().resolve()) for v in a.videos], str(out))
+    proj = Project.open(str(out))
+    proj.set_clips(clips)
+    for k, c in enumerate(clips, 1):
+        print(f"  clip {k}: {c['name']}  {fmt(c['start'])} - {fmt(c['end'])}")
+    print(f"joined -> {out}\nnext: mcut prep \"{out}\"")
 
 
 def cmd_rules(a) -> None:
@@ -98,7 +131,7 @@ def cmd_lines(a) -> None:
     proj = Project.open(a.video)
     tokens = proj.display_tokens()
     n = len(phrases(tokens))
-    print(numbered_lines(tokens, range(a.start, min(a.end + 1 if a.end is not None else n, n))))
+    print(lines_with_clips(proj, tokens, range(a.start, min(a.end + 1 if a.end is not None else n, n))))
 
 
 def _summary(proj: Project, st) -> None:
@@ -343,6 +376,12 @@ def main() -> None:
     p.add_argument("video")
     p.add_argument("--force", action="store_true", help="redo audio, proxy and transcription")
     p.set_defaults(fn=cmd_prep)
+
+    p = sub.add_parser("join", help="join several recordings (in order) into one video, plain cuts between them")
+    p.add_argument("videos", nargs="+")
+    p.add_argument("-o", "--output", help="default: <first>_joined.<ext> next to the first clip")
+    p.add_argument("--force", action="store_true")
+    p.set_defaults(fn=cmd_join)
 
     p = sub.add_parser("diffs", help="list where the two recognisers disagreed (Qwen3-ASR's reading is used)")
     p.add_argument("video")

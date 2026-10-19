@@ -83,6 +83,8 @@
   .replace input[type=text] { width: 110px; font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px;
                               background: var(--panel); color: var(--ink); }
   #replaceMsg { color: var(--muted); font-size: 13px; }
+  .clipmark { margin: 10px 12px 4px; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+              color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
   .cues .row { display: flex; gap: 10px; align-items: center; padding: 3px 12px; }
   .cues input { flex: 1; font: inherit; border: 1px solid transparent; background: transparent; color: var(--ink);
                 border-radius: 6px; padding: 3px 8px; }
@@ -177,7 +179,7 @@
 const $ = (id) => document.getElementById(id);
 const video = $("video");
 let T = [], LINES = [], cuts = [], subs = {}, plan = { ranges: [], cues: [], duration: 0 };
-let srcDuration = 0, onCut = [], offCut = [], history = [], tokEls = [], lineOf = [];
+let srcDuration = 0, onCut = [], offCut = [], history = [], tokEls = [], lineOf = [], CLIPS = [];
 
 const fmt = (s) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, "0")}`;
 const REASON_LABEL = { retake: "retake", false_start: "false start", filler: "filler", stutter: "stutter",
@@ -186,7 +188,7 @@ const REASON_LABEL = { retake: "retake", false_start: "false start", filler: "fi
 async function load() {
   const st = await (await fetch("/api/state")).json();
   T = st.tokens; LINES = st.lines; cuts = st.cuts; subs = st.subs; plan = st.plan;
-  style = st.style; styleBuiltin = st.style_builtin; hideA = st.hide_endings; FONTS = st.fonts;
+  style = st.style; styleBuiltin = st.style_builtin; hideA = st.hide_endings; FONTS = st.fonts; CLIPS = st.clips;
   buildStylePanel();
   $("name").textContent = st.name;
   document.title = `${st.name} · mcut`;
@@ -200,7 +202,15 @@ function buildTranscript() {
   root.innerHTML = "";
   tokEls = new Array(T.length);
   lineOf = new Array(T.length);
+  let nextClip = 0;
   LINES.forEach(([a, b], li) => {
+    while (nextClip < CLIPS.length && T[a][1] >= CLIPS[nextClip].start - 0.05) {  // joined video: where each clip starts
+      const mark = document.createElement("div");
+      mark.className = "clipmark";
+      mark.textContent = `Clip ${nextClip + 1} · ${CLIPS[nextClip].name}`;
+      root.appendChild(mark);
+      nextClip++;
+    }
     const row = document.createElement("div");
     row.className = "line";
     const lid = document.createElement("span");
