@@ -1,11 +1,12 @@
 You help edit the recording of a spoken voice-over (mostly Mandarin, some English) for a product walkthrough video. The speaker sometimes restarts, says the same content twice (a retake), stutters, or makes filler sounds. Mark what to CUT so the remaining speech is fluent and says each idea exactly once. Long silences are shortened automatically, and the filler sounds 呃 / 嗯 / um / uh are already removed automatically wherever they occur, so you don't need to mark those.
 
-Input: numbered lines "id|text", in spoken order.
+Input: numbered lines "id|text", in spoken order. If the video was joined from several recordings, `--- clip N ---` marker lines show where each recording starts.
 
 Find two kinds of cuts:
 
 A. Whole lines to drop ("from"/"to" line ids, inclusive):
    - Retakes: the speaker says something, then starts over and says it again (often reworded, sometimes several lines later). Drop the EARLIER attempt(s) and keep the LAST complete version. A retake can span many lines (e.g. a whole intro of a product said twice): drop the entire first attempt, including any half-finished lines between the two attempts. You may keep a piece of an earlier take when it carries something the last take lacks (e.g. the product's full name) and the joined result reads naturally; otherwise keep the last take whole.
+   - Retakes across clips: in a joined video the speaker often re-records, in a later clip, a section from an earlier clip (the earlier clip may end mid-thought). Treat it like any retake: drop the earlier version, keep the later one.
    - False starts: abandoned half-sentences that the speaker restarts.
    - A line that is only a hesitation such as a lone 啊 at the start of a thought. (The transcriber often splits a sentence-final 啊 onto its own line right after the sentence it ends; that one is a particle — keep it.)
 

@@ -24,6 +24,7 @@ class Plan:
     cues: list[Cue]
     settings: Settings
     style: Style
+    joins: list[float]  # source times where joined clips meet
 
 
 def make_plan(proj: Project, st: State, env: Envelope | None = None, window: tuple[float, float] | None = None) -> Plan:
@@ -34,7 +35,7 @@ def make_plan(proj: Project, st: State, env: Envelope | None = None, window: tup
     ranges = keep_ranges(tokens, deleted, env or Envelope(str(proj.audio)), st.settings)
     tl = Timeline(ranges)
     cues = subtitle_cues(tokens, deleted, tl, st.subs, st.settings.sub_hide_endings)
-    return Plan(ranges, tl, cues, st.settings, st.style)
+    return Plan(ranges, tl, cues, st.settings, st.style, proj.joins)
 
 
 def decode_audio(video: str, start: float, end: float) -> np.ndarray:
@@ -106,7 +107,7 @@ def render(proj: Project, plan: Plan, out: Path, preview: bool = False, burn_sub
         wav = f"{tmp}/audio.wav"
         write_wav(wav, stitch_audio(decode_audio(video, start, end), ranges, start))
         inputs = ["-ss", f"{start}", "-to", f"{end}", "-i", video, "-i", wav]
-        graph = f"[0:v]{video_filters(video_map(ranges, plan.settings), start)}"
+        graph = f"[0:v]{video_filters(video_map(ranges, plan.settings, plan.joins), start)}"
         if burn_subs and plan.cues:
             cues = burn.cue_stream(plan.cues, burn.frame_size(video), tmp, plan.timeline.duration, plan.style)
             inputs += ["-f", "concat", "-safe", "0", "-i", cues]

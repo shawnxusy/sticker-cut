@@ -27,6 +27,10 @@ The first run installs uv, Python 3.12 and the dependencies (~1 min), then downl
 
 To update: `/plugin` → Installed → mcut → Update now.
 
+## Several recordings
+
+`/mcut` with several files (or `mcut join A.MOV B.MOV C.MOV`) joins them into one video first, with plain cuts. Clips from the same phone are joined without re-encoding. Claude also catches sections re-recorded in a later clip.
+
 ## Use without Claude
 
 ```

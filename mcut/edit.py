@@ -98,10 +98,12 @@ def fragment_tokens(line_tokens: list[Token], fragment: str) -> list[int] | None
     return list(range(a, b + 1))
 
 
-def _runs(indices) -> list[tuple[int, int]]:
+def _runs(indices, reasons: dict | None = None) -> list[tuple[int, int]]:
+    """Contiguous runs of token indices; with `reasons`, a run also breaks where the reason changes."""
     runs = []
     for i in sorted(indices):
-        if runs and i == runs[-1][1] + 1:
+        same = reasons is None or reasons.get(i) == reasons.get(runs[-1][1]) if runs else False
+        if runs and i == runs[-1][1] + 1 and same:
             runs[-1][1] = i
         else:
             runs.append([i, i])
@@ -135,7 +137,7 @@ def apply_ai(tokens: list[Token], data: dict, source: str, ids: range | None = N
         for k in got:
             deleted.setdefault(k, f.get("reason", "stutter"))
 
-    return [Cut(a, b, deleted[a], source) for a, b in _runs(deleted)], rejected
+    return [Cut(a, b, deleted[a], source) for a, b in _runs(deleted, deleted)], rejected
 
 
 def parse_json(text: str) -> dict:

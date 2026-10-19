@@ -30,8 +30,30 @@ class Project:
             raise FileNotFoundError(p)
         proj = cls(p, p.with_name(p.stem + ".mcut"))
         proj.dir.mkdir(exist_ok=True)
-        (proj.dir / "project.json").write_text(json.dumps({"video": str(p)}, ensure_ascii=False))
+        meta = proj._meta()
+        if meta.get("video") != str(p):
+            proj._write_meta({**meta, "video": str(p)})
         return proj
+
+    def _meta(self) -> dict:
+        f = self.dir / "project.json"
+        return json.loads(f.read_text()) if f.exists() else {}
+
+    def _write_meta(self, meta: dict) -> None:
+        (self.dir / "project.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
+
+    @property
+    def clips(self) -> list[dict]:
+        """For a video made with `mcut join`: [{"name", "start", "end"}] in source seconds."""
+        return self._meta().get("clips", [])
+
+    def set_clips(self, clips: list[dict]) -> None:
+        self._write_meta({**self._meta(), "clips": clips})
+
+    @property
+    def joins(self) -> list[float]:
+        """Source times where one joined clip ends and the next begins."""
+        return [c["start"] for c in self.clips[1:]]
 
     @property
     def name(self) -> str:
